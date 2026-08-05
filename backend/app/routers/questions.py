@@ -1,12 +1,12 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Query  # pyrefly: ignore [missing-import] # type: ignore
+from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: ignore
 
-from app.database import get_db
-from app.models.question import Question, QuestionOption
-from app.models.user import User
-from app.schemas.question import QuestionCreate, QuestionUpdate, QuestionResponse
-from app.core.dependencies import require_permission
+from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.question import Question, QuestionOption  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.user import User  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.question import QuestionCreate, QuestionUpdate, QuestionResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import require_permission  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/questions", tags=["Question Bank CRUD"])
 

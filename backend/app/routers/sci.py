@@ -1,13 +1,13 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status  # pyrefly: ignore [missing-import] # type: ignore
+from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: ignore
 
-from app.database import get_db
-from app.models.sci import SkillConfidenceRecord
-from app.models.user import User
-from app.schemas.sci import SkillConfidenceRecordResponse
-from app.core.dependencies import get_current_user, require_permission
-from app.services.sci_engine import calculate_sci_for_attempt
+from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.sci import SkillConfidenceRecord  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.user import User  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.sci import SkillConfidenceRecordResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user, require_permission  # pyrefly: ignore [missing-import] # type: ignore
+from app.services.sci_engine import calculate_sci_for_attempt  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/sci", tags=["SCI Engine"])
 

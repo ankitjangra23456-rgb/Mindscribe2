@@ -1,14 +1,14 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status  # pyrefly: ignore [missing-import] # type: ignore
+from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: ignore
 
-from app.database import get_db
-from app.models.exam import Exam
-from app.models.question import Question
-from app.models.user import User
-from app.schemas.exam import ExamCreate, ExamUpdate, ExamResponse
-from app.core.dependencies import get_current_user, require_permission
-from app.core.audit import log_audit_event
+from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.exam import Exam  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.question import Question  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.user import User  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.exam import ExamCreate, ExamUpdate, ExamResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user, require_permission  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.audit import log_audit_event  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/exams", tags=["Exam Scheduling CRUD"])
 

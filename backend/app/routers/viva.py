@@ -1,16 +1,16 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status  # pyrefly: ignore [missing-import] # type: ignore
+from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: ignore
 
-from app.database import get_db
-from app.models.attempt import Attempt, AttemptAnswer
-from app.models.question import Question
-from app.models.viva import VivaSession, VivaQuestion
-from app.models.viva_scoring import VivaResponse
-from app.models.user import User
-from app.schemas.viva import VivaSessionResponse
-from app.schemas.viva_scoring import VivaReplyRequest, VivaResponseResult
-from app.core.dependencies import get_current_user
+from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.attempt import Attempt, AttemptAnswer  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.question import Question  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.viva import VivaSession, VivaQuestion  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.viva_scoring import VivaResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.user import User  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.viva import VivaSessionResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.viva_scoring import VivaReplyRequest, VivaResponseResult  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/viva", tags=["AI Viva Engine"])
 

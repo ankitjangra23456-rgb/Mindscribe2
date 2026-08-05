@@ -1,13 +1,13 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status  # pyrefly: ignore [missing-import] # type: ignore
+from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: ignore
 
-from app.database import get_db
-from app.models.ledger import PaperLedger
-from app.models.user import User
-from app.schemas.ledger import LedgerLogRequest, LedgerRecordResponse
-from app.core.dependencies import get_current_user, require_permission
-from app.services.ledger_service import log_paper_ledger_event, verify_paper_ledger_chain
+from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.ledger import PaperLedger  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.user import User  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.ledger import LedgerLogRequest, LedgerRecordResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user, require_permission  # pyrefly: ignore [missing-import] # type: ignore
+from app.services.ledger_service import log_paper_ledger_event, verify_paper_ledger_chain  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/ledger", tags=["Paper Hash-Chain Ledger"])
 
