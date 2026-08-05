@@ -1,0 +1,189 @@
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status  # pyrefly: ignore [missing-import] # type: ignore
+from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: ignore
+
+from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
+from app.models.user import User, Role, Permission, RefreshToken  # pyrefly: ignore [missing-import] # type: ignore
+from app.schemas.auth import UserRegister, UserLogin, Token, RefreshTokenRequest, UserResponse  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user, RoleChecker  # pyrefly: ignore [missing-import] # type: ignore
+from app.config import settings  # pyrefly: ignore [missing-import] # type: ignore
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication & RBAC"])
+
+def ensure_roles_and_permissions_exist(db: Session):
+    default_roles = ["Admin", "Faculty", "Student"]
+    permissions_list = [
+        ("exam:create", "Create exams"),
+        ("exam:publish", "Publish exams"),
+        ("question:manage", "Manage question bank"),
+        ("results:view_own", "View own exam results"),
+        ("results:view_all", "View all exam results"),
+        ("user:manage", "Manage system users"),
+    ]
+
+    permission_objs = {}
+    for perm_name, desc in permissions_list:
+        perm = db.query(Permission).filter(Permission.name == perm_name).first()
+        if not perm:
+            perm = Permission(name=perm_name, description=desc)
+            db.add(perm)
+            db.flush()
+        permission_objs[perm_name] = perm
+
+    role_permissions_map = {
+        "Admin": ["exam:create", "exam:publish", "question:manage", "results:view_own", "results:view_all", "user:manage"],
+        "Faculty": ["exam:create", "exam:publish", "question:manage", "results:view_own", "results:view_all"],
+        "Student": ["results:view_own"],
+    }
+
+    for role_name in default_roles:
+        role = db.query(Role).filter(Role.name == role_name).first()
+        if not role:
+            role = Role(name=role_name, description=f"{role_name} Role")
+            db.add(role)
+            db.flush()
+
+        target_perms = [permission_objs[p] for p in role_permissions_map[role_name] if p in permission_objs]
+        for p in target_perms:
+            if p not in role.permissions:
+                role.permissions.append(p)
+
+    db.commit()
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(user_in: UserRegister, db: Session = Depends(get_db)):
+    ensure_roles_and_permissions_exist(db)
+
+    existing_user = db.query(User).filter(User.email == user_in.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email is already registered"
+        )
+
+    role_obj = db.query(Role).filter(Role.name == user_in.role).first()
+    if not role_obj:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid role: {user_in.role}. Valid roles are Admin, Faculty, Student"
+        )
+
+    hashed_pwd = get_password_hash(user_in.password)
+    new_user = User(
+        email=user_in.email,
+        full_name=user_in.full_name,
+        hashed_password=hashed_pwd,
+        is_active=True
+    )
+    new_user.roles.append(role_obj)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    user_roles = [r.name for r in new_user.roles]
+    return UserResponse(
+        id=new_user.id,
+        email=new_user.email,
+        full_name=new_user.full_name,
+        is_active=new_user.is_active,
+        roles=user_roles,
+        created_at=new_user.created_at
+    )
+
+@router.post("/login", response_model=Token)
+def login(user_in: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == user_in.email).first()
+    if not user or not verify_password(user_in.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user account"
+        )
+
+    user_roles = [r.name for r in user.roles]
+    token_data = {"sub": user.email, "roles": user_roles}
+
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data=token_data)
+
+    expires_at = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    db_refresh_token = RefreshToken(
+        token=refresh_token,
+        user_id=user.id,
+        expires_at=expires_at
+    )
+    db.add(db_refresh_token)
+    db.commit()
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
+
+@router.post("/refresh", response_model=Token)
+def refresh_token(token_in: RefreshTokenRequest, db: Session = Depends(get_db)):
+    payload = decode_token(token_in.refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    db_token = db.query(RefreshToken).filter(
+        RefreshToken.token == token_in.refresh_token,
+        RefreshToken.revoked == False
+    ).first()
+
+    if not db_token or db_token.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired or revoked")
+
+    user = db.query(User).filter(User.id == db_token.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+
+    db_token.revoked = True
+
+    user_roles = [r.name for r in user.roles]
+    token_data = {"sub": user.email, "roles": user_roles}
+
+    new_access_token = create_access_token(data=token_data)
+    new_refresh_token = create_refresh_token(data=token_data)
+
+    new_db_token = RefreshToken(
+        token=new_refresh_token,
+        user_id=user.id,
+        expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    db.add(new_db_token)
+    db.commit()
+
+    return Token(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+        token_type="bearer"
+    )
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    user_roles = [r.name for r in current_user.roles]
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        is_active=current_user.is_active,
+        roles=user_roles,
+        created_at=current_user.created_at
+    )
+
+@router.get("/admin-only")
+def admin_only_route(current_user: User = Depends(RoleChecker(["Admin"]))):
+    return {"message": f"Hello Admin {current_user.full_name}, access granted."}
+
+@router.get("/faculty-only")
+def faculty_only_route(current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))):
+    return {"message": f"Hello Faculty/Admin {current_user.full_name}, access granted."}

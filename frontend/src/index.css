@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── CSS Custom Properties (Light Mode) ── */
+:root {
+  --bg-primary:     #f8fafc;
+  --bg-secondary:   #ffffff;
+  --bg-card:        #ffffff;
+  --border-color:   #e2e8f0;
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --input-bg:       #f1f5f9;
+  --sidebar-bg:     #ffffff;
+  --header-bg:      #ffffff;
+  --shadow-card:    0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+}
+
+/* ── Dark Mode ── */
+.dark {
+  --bg-primary:     #0f172a;
+  --bg-secondary:   #1e293b;
+  --bg-card:        #1e293b;
+  --border-color:   #334155;
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --input-bg:       #0f172a;
+  --sidebar-bg:     #1e293b;
+  --header-bg:      #1e293b;
+  --shadow-card:    0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+@layer components {
+  /* ── Card ── */
+  .card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    @apply rounded-2xl shadow-sm;
+  }
+
+  /* ── Input ── */
+  .input-base {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    @apply w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all;
+  }
+  .input-base::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* ── Primary Button ── */
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  /* ── Secondary Button ── */
+  .btn-secondary {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    @apply font-semibold text-sm px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2;
+  }
+  .btn-secondary:hover {
+    background-color: var(--input-bg);
+  }
+
+  /* ── Nav ── */
+  .nav-active {
+    @apply bg-blue-600 text-white shadow-md shadow-blue-500/20;
+  }
+  .nav-item {
+    @apply flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all;
+  }
+
+  /* ── Status Badges ── */
+  .badge-easy   { @apply bg-emerald-50 text-emerald-700 border border-emerald-200; }
+  .badge-medium { @apply bg-amber-50 text-amber-700 border border-amber-200; }
+  .badge-hard   { @apply bg-rose-50 text-rose-700 border border-rose-200; }
+  .badge-mcq    { @apply bg-blue-50 text-blue-700 border border-blue-200; }
+  .badge-desc   { @apply bg-purple-50 text-purple-700 border border-purple-200; }
+
+  /* ── Skeleton Loader ── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--input-bg) 25%,
+      var(--border-color) 50%,
+      var(--input-bg) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s infinite ease-in-out;
+    @apply rounded-xl;
+  }
+  @keyframes skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Toast Notification ── */
+  .toast-container {
+    @apply fixed top-5 right-5 z-[9999] flex flex-col gap-2 max-w-xs w-full pointer-events-none;
+  }
+  .toast {
+    @apply flex items-start gap-3 px-4 py-3 rounded-2xl shadow-xl text-sm font-semibold pointer-events-auto;
+    animation: toast-slide-in 0.3s ease-out;
+  }
+  @keyframes toast-slide-in {
+    from { opacity: 0; transform: translateX(100%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .toast-success { @apply bg-emerald-600 text-white; }
+  .toast-error   { @apply bg-rose-600 text-white; }
+  .toast-warning { @apply bg-amber-500 text-white; }
+  .toast-info    { @apply bg-blue-600 text-white; }
+
+  /* ── Page Transition ── */
+  .page-enter {
+    animation: page-fade-in 0.25s ease-out;
+  }
+  @keyframes page-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .scrollbar-thin::-webkit-scrollbar        { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar-track  { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb  { background: #cbd5e1; border-radius: 9999px; }
+
+  /* Dark mode text helpers */
+  .text-primary   { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted     { color: var(--text-muted); }
+
+  /* Glassmorphism */
+  .glass {
+    backdrop-filter: blur(12px) saturate(1.8);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+}

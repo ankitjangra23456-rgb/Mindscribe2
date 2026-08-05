@@ -1,0 +1,7 @@
+[tool.pyrefly]
+disabled-rules = ["missing-import", "unresolved-import"]
+extra-paths = ["backend"]
+
+[tool.pyright]
+extraPaths = ["backend"]
+reportMissingImports = false
