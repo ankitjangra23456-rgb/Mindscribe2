@@ -6,7 +6,7 @@ from app.database import get_db  # pyrefly: ignore [missing-import] # type: igno
 from app.models.user import User, Role, Permission, RefreshToken  # pyrefly: ignore [missing-import] # type: ignore
 from app.schemas.auth import UserRegister, UserLogin, Token, RefreshTokenRequest, UserResponse  # pyrefly: ignore [missing-import] # type: ignore
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token  # pyrefly: ignore [missing-import] # type: ignore
-from app.core.dependencies import get_current_user, RoleChecker  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user, RoleChecker, require_permission
 from app.config import settings  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication & RBAC"])
@@ -91,10 +91,13 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
         created_at=new_user.created_at
     )
 
+from app.core.audit import log_audit_event
+
 @router.post("/login", response_model=Token)
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
     if not user or not verify_password(user_in.password, user.hashed_password):
+        log_audit_event(db, action="LOGIN_FAILED", user_id=user.id if user else None)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -120,6 +123,7 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         expires_at=expires_at
     )
     db.add(db_refresh_token)
+    log_audit_event(db, action="LOGIN_SUCCESS", user_id=user.id)
     db.commit()
 
     return Token(
@@ -134,18 +138,23 @@ def refresh_token(token_in: RefreshTokenRequest, db: Session = Depends(get_db)):
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
-    db_token = db.query(RefreshToken).filter(
-        RefreshToken.token == token_in.refresh_token,
-        RefreshToken.revoked == False
-    ).first()
+    db_token = db.query(RefreshToken).filter(RefreshToken.token == token_in.refresh_token).first()
 
-    if not db_token or db_token.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired or revoked")
+    if not db_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token not found")
+
+    if db_token.revoked:
+        log_audit_event(db, action="REFRESH_TOKEN_REUSE_ATTEMPT", user_id=db_token.user_id)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token already revoked (reuse attempt detected)")
+
+    if db_token.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
 
     user = db.query(User).filter(User.id == db_token.user_id).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
 
+    # Rotate token: invalidate used token
     db_token.revoked = True
 
     user_roles = [r.name for r in user.roles]
@@ -160,6 +169,7 @@ def refresh_token(token_in: RefreshTokenRequest, db: Session = Depends(get_db)):
         expires_at=datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     )
     db.add(new_db_token)
+    log_audit_event(db, action="REFRESH_TOKEN_SUCCESS", user_id=user.id)
     db.commit()
 
     return Token(

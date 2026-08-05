@@ -48,17 +48,20 @@ class RoleChecker:
             )
         return current_user
 
+from app.core.audit import log_audit_event
+
 class PermissionChecker:
     def __init__(self, required_permission: str):
         self.required_permission = required_permission
 
-    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+    def __call__(self, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
         user_permissions = set()
         for role in current_user.roles:
             for perm in role.permissions:
                 user_permissions.add(perm.name)
 
         if self.required_permission not in user_permissions:
+            log_audit_event(db, action=f"PERMISSION_DENIED: {self.required_permission}", user_id=current_user.id)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Permission denied. Required permission: '{self.required_permission}'"

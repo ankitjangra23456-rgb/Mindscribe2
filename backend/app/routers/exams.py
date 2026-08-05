@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.exam import ExamCreate, ExamUpdate, ExamResponse
 from app.core.dependencies import get_current_user, require_permission
 
-router = APIRouter(prefix="/api/exams", tags=["Exam Scheduling CRUD"])
+from app.core.audit import log_audit_event
 
 @router.post("", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
 def create_exam(
@@ -39,6 +39,7 @@ def create_exam(
     new_exam.questions = questions
 
     db.add(new_exam)
+    log_audit_event(db, action=f"EXAM_CREATE: {new_exam.title}", user_id=current_user.id)
     db.commit()
     db.refresh(new_exam)
     return new_exam

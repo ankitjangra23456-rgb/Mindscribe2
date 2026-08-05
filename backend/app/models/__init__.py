@@ -9,6 +9,7 @@ from app.models.viva_scoring import VivaResponse
 from app.models.sci import SkillConfidenceRecord
 from app.models.ledger import PaperLedger
 from app.models.telemetry import AttemptTelemetry
+from app.models.audit import AuditLog
 
 __all__ = [
     "User", "Role", "Permission", "RefreshToken", "user_roles", "role_permissions",
@@ -21,5 +22,6 @@ __all__ = [
     "VivaResponse",
     "SkillConfidenceRecord",
     "PaperLedger",
-    "AttemptTelemetry"
+    "AttemptTelemetry",
+    "AuditLog"
 ]
