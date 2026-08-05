@@ -1,37 +1,48 @@
+import json
+import logging
 import difflib
-import math
+from app.config import settings
 
-_model = None
+try:
+    import google.generativeai as genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    GENAI_AVAILABLE = False
 
-def _get_model():
-    global _model
-    if _model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer('all-MiniLM-L6-v2')
-        except Exception as e:
-            print(f"Notice: sentence-transformers model not initialized ({e}). Using vector term similarity fallback.")
-            _model = False
-    return _model
+logger = logging.getLogger("mindscribe.viva_scorer")
 
 def calculate_semantic_consistency(original_answer: str, viva_reply: str) -> float:
     """
     Computes semantic consistency score in range [0.0, 1.0] between the student's original answer
-    and their follow-up viva response.
+    and their follow-up viva response using Google Gemini API structured JSON output mode.
+    Falls back gracefully to term vector ratio if Gemini API is unreachable or key is missing.
     """
     if not original_answer.strip() or not viva_reply.strip():
         return 0.0
 
-    model = _get_model()
-    if model:
+    api_key = settings.GEMINI_API_KEY or settings.LLM_API_KEY
+    if GENAI_AVAILABLE and api_key:
         try:
-            from sentence_transformers import util
-            emb1 = model.encode(original_answer, convert_to_tensor=True)
-            emb2 = model.encode(viva_reply, convert_to_tensor=True)
-            similarity = util.cos_sim(emb1, emb2).item()
-            return round(max(0.0, min(1.0, float(similarity))), 4)
-        except Exception as e:
-            print(f"Embedding scoring error: {e}")
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(
+                model_name=settings.GEMINI_MODEL_NAME,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            prompt = (
+                "Evaluate the semantic consistency and conceptual alignment between the student's written exam answer "
+                "and their oral viva follow-up reply.\n\n"
+                f"Original Written Answer: {original_answer}\n"
+                f"Viva Follow-Up Reply: {viva_reply}\n\n"
+                "Return a JSON object with two fields:\n"
+                '{"consistency_score": <float between 0.0 and 1.0>, "explanation": "<brief rationale>"}'
+            )
+            response = model.generate_content(prompt)
+            if response and response.text:
+                data = json.loads(response.text)
+                score = float(data.get("consistency_score", 0.0))
+                return round(max(0.0, min(1.0, score)), 4)
+        except Exception as exc:
+            logger.warning(f"Gemini consistency scoring failed: {exc}. Using fallback matcher.")
 
     # High-accuracy fallback: Jaccard & Sequence similarity vector blend
     words_a = set(original_answer.lower().split())
