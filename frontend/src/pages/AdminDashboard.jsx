@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useLocation } from 'react-router-dom';
 import { Users, BookOpen, Award, BarChart2, Shield, Sparkles, TrendingUp, Target, Search, Eye, Trash2, Edit2, PlusCircle } from 'lucide-react';
-import { MOCK_CANDIDATES } from '../services/mockData';
 
 function StatCard({ label, value, icon: Icon, trend, color = 'blue' }) {
   const iconClass = {

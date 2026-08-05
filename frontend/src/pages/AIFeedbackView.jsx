@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { CheckCircle, XCircle, ArrowLeft, Download, Share2, Sparkles, BarChart2, Target } from 'lucide-react';
-import { MOCK_EXAM_QUESTIONS } from '../services/mockData';
 import { getExamFeedback } from '../services/aiService';
 
 // Circular progress ring
@@ -47,11 +46,8 @@ function SkillBar({ label, score }) {
 }
 
 const AI_FEEDBACK = [
-  { type: 'strength',  text: "Strong grasp of binary search trees (BST) insertion, deletion and traversal — scored 100% in that sub-topic." },
-  { type: 'strength',  text: "Good understanding of graph traversal algorithms (BFS, DFS)." },
-  { type: 'weak',      text: "Amortized analysis and DSU (Disjoint Set Union) need more attention — missed both related questions." },
-  { type: 'weak',      text: "Dynamic programming concepts need revision. Review memoization and overlapping subproblems." },
-  { type: 'recommend', text: "Practice at least 10 DP problems on LeetCode (Easy → Medium) before next exam." },
+  { type: 'strength',  text: "Strong grasp of core exam concepts — attempted objective questions accurately." },
+  { type: 'recommend', text: "Review missed sub-topics and continue practicing adaptive question sets." },
 ];
 
 export default function AIFeedbackView() {
@@ -61,9 +57,9 @@ export default function AIFeedbackView() {
 
   // Accept navigation state or use demo
   const { answers = {}, questions = [] } = location.state || {};
-  const total     = questions.length || 20;
+  const total     = questions.length || 0;
   const answered  = Object.keys(answers).length;
-  const pct       = answered > 0 ? Math.min(100, Math.round((answered / total) * 100)) : 82;
+  const pct       = total > 0 ? Math.round((answered / total) * 100) : 0;
 
   useEffect(() => {
     async function loadFeedback() {

@@ -25,17 +25,17 @@ export const createExam = async (examData) => {
   return response.data;
 };
 
-export const submitAttempt = async (attemptData) => {
-  const response = await API.post('/attempts', attemptData);
+export const submitAttempt = async (attemptId, attemptData) => {
+  const response = await API.post(`/attempts/${attemptId}/submit`, attemptData);
   return response.data;
 };
 
 export const getMyAttempts = async () => {
-  const response = await API.get('/attempts/my');
+  const response = await API.get('/attempts/student/me');
   return response.data;
 };
 
 export const getAttemptResult = async (attemptId) => {
-  const response = await API.get(`/attempts/${attemptId}/result`);
+  const response = await API.get(`/attempts/${attemptId}`);
   return response.data;
 };

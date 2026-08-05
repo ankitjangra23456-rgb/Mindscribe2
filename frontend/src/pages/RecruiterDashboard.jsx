@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useLocation } from 'react-router-dom';
 import { Search, Star, StarOff, Download, Eye, Filter, Briefcase, TrendingUp, Users, Target } from 'lucide-react';
-import { MOCK_CANDIDATES } from '../services/mockData';
+import { useLeaderboard } from '../hooks/useSCI';
 
 export default function RecruiterDashboard() {
   const location = useLocation();
+  const { candidates } = useLeaderboard();
   const [search,     setSearch]     = useState('');
   const [skillFilter,setSkillFilter]= useState('All');
   const [shortlist,  setShortlist]  = useState(new Set());
@@ -21,9 +22,9 @@ export default function RecruiterDashboard() {
 
   const ALL_SKILLS = ['All', 'Java', 'Python', 'Angular', '.NET', 'React', 'SQL', 'AI/ML'];
 
-  const filtered = MOCK_CANDIDATES.filter(c => {
-    const matchName  = c.name.toLowerCase().includes(search.toLowerCase());
-    const matchSkill = skillFilter === 'All' || c.skills.some(s => s.toLowerCase().includes(skillFilter.toLowerCase()));
+  const filtered = candidates.filter(c => {
+    const matchName  = (c.name || c.full_name || '').toLowerCase().includes(search.toLowerCase());
+    const matchSkill = skillFilter === 'All' || (c.skills && c.skills.some(s => s.toLowerCase().includes(skillFilter.toLowerCase())));
     return matchName && matchSkill;
   });
 
@@ -35,7 +36,7 @@ export default function RecruiterDashboard() {
     });
   };
 
-  const shortlisted = MOCK_CANDIDATES.filter(c => shortlist.has(c.id));
+  const shortlisted = candidates.filter(c => shortlist.has(c.id));
 
   const TABS = [
     { id: 'search',    label: 'Search Candidates', icon: Search },

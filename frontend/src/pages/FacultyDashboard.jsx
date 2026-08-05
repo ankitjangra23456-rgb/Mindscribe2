@@ -6,7 +6,6 @@ import {
   Filter, Search, Trash2, Edit2, Eye, ChevronDown, TrendingUp,
   CheckCircle, Clock, ArrowRight, Shield
 } from 'lucide-react';
-import { MOCK_QUESTIONS, MOCK_CANDIDATES } from '../services/mockData';
 import { useQuestions } from '../hooks/useQuestions';
 
 function StatCard({ label, value, icon: Icon, color = 'blue', sub }) {

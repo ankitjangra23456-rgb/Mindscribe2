@@ -1,20 +1,53 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Star, ArrowLeft, ArrowRight, RotateCcw, Send, ChevronLeft, ShieldAlert } from 'lucide-react';
-import { MOCK_EXAM_QUESTIONS } from '../services/mockData';
+import { getQuestions } from '../services/questionService';
 import { useProctoring } from '../hooks/useProctoring';
 
 const TOTAL_TIME = 45 * 60; // 45 minutes
 
 export default function ExamRunner() {
   const navigate = useNavigate();
-  const [currentIdx,      setCurrentIdx]      = useState(0);
-  const [answers,         setAnswers]         = useState({});   // { questionId: optionKey }
-  const [marked,          setMarked]          = useState({});   // { questionId: true }
-  const [timeLeft,        setTimeLeft]        = useState(TOTAL_TIME);
+  const [questions, setQuestions]     = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [currentIdx, setCurrentIdx]   = useState(0);
+  const [answers, setAnswers]         = useState({});   // { questionId: optionKey }
+  const [marked, setMarked]           = useState({});   // { questionId: true }
+  const [timeLeft, setTimeLeft]       = useState(TOTAL_TIME);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [submitted,       setSubmitted]       = useState(false);
+  const [submitted, setSubmitted]     = useState(false);
   const [proctorWarning, setProctorWarning]  = useState(null);
+
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const dbQs = await getQuestions();
+        if (Array.isArray(dbQs) && dbQs.length > 0) {
+          const mapped = dbQs.map(q => ({
+            id: q.id,
+            stem: q.question_text || q.stem || "Question stem",
+            bloom_level: q.bloom_level || "Apply",
+            options: Array.isArray(q.options) ? q.options.map((opt, i) => ({
+              key: String.fromCharCode(65 + i),
+              text: typeof opt === 'string' ? opt : opt.option_text || opt.text
+            })) : [
+              { key: 'A', text: 'Option A' },
+              { key: 'B', text: 'Option B' }
+            ]
+          }));
+          setQuestions(mapped);
+        } else {
+          setQuestions([]);
+        }
+      } catch (err) {
+        console.warn("Failed to load exam questions from database:", err);
+        setQuestions([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadQuestions();
+  }, []);
 
   const { warningsCount } = useProctoring({
     enabled: !submitted,
@@ -24,8 +57,7 @@ export default function ExamRunner() {
     }
   });
 
-  const questions = MOCK_EXAM_QUESTIONS;
-  const current   = questions[currentIdx];
+  const current = questions[currentIdx];
 
   // Countdown timer
   useEffect(() => {
@@ -80,6 +112,41 @@ export default function ExamRunner() {
 
   const answeredCount = Object.keys(answers).length;
   const markedCount   = Object.keys(marked).filter(k => marked[k]).length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-xs font-semibold text-slate-600">Loading Exam Questions from Database...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
+        <header className="bg-white border-b border-slate-200 px-4 md:px-8 h-16 flex items-center justify-between">
+          <button onClick={() => navigate('/student')} className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+            <ChevronLeft className="w-4 h-4" /> Back to Dashboard
+          </button>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 max-w-md w-full text-center space-y-4 shadow-card">
+            <ShieldAlert className="w-12 h-12 text-slate-300 mx-auto" />
+            <h2 className="text-lg font-bold text-slate-800">No Questions Found</h2>
+            <p className="text-xs text-slate-500">
+              There are currently no active questions published for this exam in the database. Please check back after your faculty publishes the exam paper.
+            </p>
+            <button onClick={() => navigate('/student')} className="btn-primary w-full text-xs py-2">
+              Return to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">

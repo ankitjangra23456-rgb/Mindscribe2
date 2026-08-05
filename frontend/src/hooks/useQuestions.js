@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getQuestions, createQuestion, deleteQuestion } from '../services/questionService';
-import { MOCK_QUESTIONS } from '../services/mockData';
 
 export function useQuestions(filters = {}) {
   const [questions, setQuestions] = useState([]);
@@ -9,11 +8,14 @@ export function useQuestions(filters = {}) {
 
   const fetchQuestions = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getQuestions(filters);
-      setQuestions(data && data.length > 0 ? data : MOCK_QUESTIONS);
-    } catch {
-      setQuestions(MOCK_QUESTIONS);
+      setQuestions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.warn("Failed to fetch questions from database:", err);
+      setQuestions([]);
+      setError(err?.message || "Failed to load questions");
     } finally {
       setLoading(false);
     }
@@ -24,23 +26,13 @@ export function useQuestions(filters = {}) {
   }, [fetchQuestions]);
 
   const addQuestion = async (qData) => {
-    try {
-      const created = await createQuestion(qData);
-      setQuestions(prev => [created, ...prev]);
-      return created;
-    } catch {
-      const newQ = { id: Date.now(), ...qData };
-      setQuestions(prev => [newQ, ...prev]);
-      return newQ;
-    }
+    const created = await createQuestion(qData);
+    setQuestions(prev => [created, ...prev]);
+    return created;
   };
 
   const removeQuestion = async (id) => {
-    try {
-      await deleteQuestion(id);
-    } catch {
-      // Mock remove
-    }
+    await deleteQuestion(id);
     setQuestions(prev => prev.filter(q => q.id !== id));
   };
 

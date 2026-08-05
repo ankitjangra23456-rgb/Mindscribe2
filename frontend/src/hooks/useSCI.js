@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
 import { getMySCI, getSCILeaderboard } from '../services/sciService';
-import { MOCK_CANDIDATES } from '../services/mockData';
 
 export function useSCI() {
-  const [sciScore, setSciScore] = useState(88);
+  const [sciScore, setSciScore] = useState(0);
   const [breakdown, setBreakdown] = useState({
-    ep: 0.92,
-    vp: 0.84,
-    skills: [
-      { name: 'Data Structures', score: 90 },
-      { name: 'Algorithms', score: 85 },
-      { name: 'System Design', score: 78 }
-    ]
+    ep: 0,
+    vp: 0,
+    delta: 0,
+    skills: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -20,11 +16,11 @@ export function useSCI() {
       try {
         const data = await getMySCI();
         if (data) {
-          setSciScore(data.score || 88);
-          setBreakdown(data.breakdown || breakdown);
+          setSciScore(data.score || 0);
+          setBreakdown(data.breakdown || { ep: 0, vp: 0, delta: 0, skills: [] });
         }
       } catch {
-        // Fallback
+        setSciScore(0);
       } finally {
         setLoading(false);
       }
@@ -36,16 +32,16 @@ export function useSCI() {
 }
 
 export function useLeaderboard() {
-  const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
+  const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
         const data = await getSCILeaderboard();
-        if (data && data.length > 0) setCandidates(data);
+        setCandidates(Array.isArray(data) ? data : []);
       } catch {
-        setCandidates(MOCK_CANDIDATES);
+        setCandidates([]);
       } finally {
         setLoading(false);
       }

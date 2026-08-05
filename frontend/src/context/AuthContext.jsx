@@ -1,6 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { loginAPI, registerAPI, getMeAPI, logoutAPI } from '../services/authService';
-import { mockLogin, sleep } from '../services/mockData';
 
 const AuthContext = createContext(null);
 
@@ -49,55 +48,31 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    try {
-      const res = await loginAPI(email, password);
-      if (res.access_token) {
-        localStorage.setItem('access_token', res.access_token);
-        if (res.refresh_token) {
-          localStorage.setItem('refresh_token', res.refresh_token);
-        }
-        const me = await getMeAPI();
-        const mainRole = me.roles?.[0] || 'Student';
-        const userObj = { ...me, activeRole: mainRole };
-        setUser(userObj);
-        setActiveRole(mainRole);
-        localStorage.setItem('examx_user', JSON.stringify(userObj));
-        return userObj;
+    const res = await loginAPI(email, password);
+    if (res.access_token) {
+      localStorage.setItem('access_token', res.access_token);
+      if (res.refresh_token) {
+        localStorage.setItem('refresh_token', res.refresh_token);
       }
-    } catch {
-      // Fallback to mock authentication if real backend API is not responding or demo user login used
-      const userData = await mockLogin(email, password);
-      const mainRole = userData.roles?.[0] || 'Student';
-      const userObj = { ...userData, activeRole: mainRole };
+      const me = await getMeAPI();
+      const mainRole = me.roles?.[0] || 'Student';
+      const userObj = { ...me, activeRole: mainRole };
       setUser(userObj);
       setActiveRole(mainRole);
       localStorage.setItem('examx_user', JSON.stringify(userObj));
       return userObj;
     }
+    throw new Error('Authentication failed: No access token returned');
   };
 
   const register = async (data) => {
-    try {
-      const res = await registerAPI({
-        email: data.email,
-        password: data.password,
-        full_name: data.full_name,
-        role: data.role
-      });
-      return res;
-    } catch {
-      await sleep(600);
-      const newUser = {
-        id: Date.now(),
-        full_name: data.full_name,
-        email: data.email,
-        roles: [data.role],
-        activeRole: data.role,
-        is_active: true,
-        created_at: new Date().toISOString(),
-      };
-      return newUser;
-    }
+    const res = await registerAPI({
+      email: data.email,
+      password: data.password,
+      full_name: data.full_name,
+      role: data.role
+    });
+    return res;
   };
 
   const logout = () => {
