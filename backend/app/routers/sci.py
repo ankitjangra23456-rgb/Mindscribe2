@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.sci import SkillConfidenceRecord
 from app.models.user import User
 from app.schemas.sci import SkillConfidenceRecordResponse
-from app.core.dependencies import get_current_user, RoleChecker
+from app.core.dependencies import get_current_user, require_permission
 from app.services.sci_engine import calculate_sci_for_attempt
 
 router = APIRouter(prefix="/api/sci", tags=["SCI Engine"])
@@ -38,7 +38,7 @@ def get_sci_for_attempt(
 def list_sci_records_for_exam(
     exam_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty", "Recruiter"]))
+    current_user: User = Depends(require_permission("results:view_all"))
 ):
     records = db.query(SkillConfidenceRecord).filter(SkillConfidenceRecord.exam_id == exam_id).all()
     return records

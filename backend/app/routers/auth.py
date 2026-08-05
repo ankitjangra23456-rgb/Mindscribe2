@@ -181,9 +181,9 @@ def get_me(current_user: User = Depends(get_current_user)):
     )
 
 @router.get("/admin-only")
-def admin_only_route(current_user: User = Depends(RoleChecker(["Admin"]))):
+def admin_only_route(current_user: User = Depends(require_permission("user:manage"))):
     return {"message": f"Hello Admin {current_user.full_name}, access granted."}
 
 @router.get("/faculty-only")
-def faculty_only_route(current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))):
+def faculty_only_route(current_user: User = Depends(require_permission("question:manage"))):
     return {"message": f"Hello Faculty/Admin {current_user.full_name}, access granted."}

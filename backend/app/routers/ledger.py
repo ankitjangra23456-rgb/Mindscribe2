@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.ledger import PaperLedger
 from app.models.user import User
 from app.schemas.ledger import LedgerLogRequest, LedgerRecordResponse
-from app.core.dependencies import get_current_user, RoleChecker
+from app.core.dependencies import get_current_user, require_permission
 from app.services.ledger_service import log_paper_ledger_event, verify_paper_ledger_chain
 
 router = APIRouter(prefix="/api/ledger", tags=["Paper Hash-Chain Ledger"])
@@ -29,7 +29,7 @@ def create_ledger_event(
 @router.get("/verify")
 def verify_ledger_integrity(
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("results:view_all"))
 ):
     result = verify_paper_ledger_chain(db)
     return result
@@ -37,7 +37,7 @@ def verify_ledger_integrity(
 @router.get("/records", response_model=List[LedgerRecordResponse])
 def get_ledger_records(
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("results:view_all"))
 ):
     records = db.query(PaperLedger).order_by(PaperLedger.id.asc()).all()
     return records

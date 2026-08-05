@@ -47,3 +47,23 @@ class RoleChecker:
                 detail=f"Operation not permitted for roles: {user_role_names}. Required one of: {self.allowed_roles}"
             )
         return current_user
+
+class PermissionChecker:
+    def __init__(self, required_permission: str):
+        self.required_permission = required_permission
+
+    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+        user_permissions = set()
+        for role in current_user.roles:
+            for perm in role.permissions:
+                user_permissions.add(perm.name)
+
+        if self.required_permission not in user_permissions:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied. Required permission: '{self.required_permission}'"
+            )
+        return current_user
+
+def require_permission(permission: str):
+    return PermissionChecker(permission)

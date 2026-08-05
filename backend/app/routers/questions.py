@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.question import Question, QuestionOption
 from app.models.user import User
 from app.schemas.question import QuestionCreate, QuestionUpdate, QuestionResponse
-from app.core.dependencies import RoleChecker
+from app.core.dependencies import require_permission
 
 router = APIRouter(prefix="/api/questions", tags=["Question Bank CRUD"])
 
@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/questions", tags=["Question Bank CRUD"])
 def create_question(
     q_in: QuestionCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("question:manage"))
 ):
     new_q = Question(
         text=q_in.text,
@@ -45,7 +45,7 @@ def list_questions(
     question_type: Optional[str] = Query(None),
     difficulty: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("question:manage"))
 ):
     query = db.query(Question)
     if question_type:
@@ -59,7 +59,7 @@ def list_questions(
 def get_question(
     q_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("question:manage"))
 ):
     q = db.query(Question).filter(Question.id == q_id).first()
     if not q:
@@ -71,7 +71,7 @@ def update_question(
     q_id: int,
     q_in: QuestionUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("question:manage"))
 ):
     q = db.query(Question).filter(Question.id == q_id).first()
     if not q:
@@ -105,7 +105,7 @@ def update_question(
 def delete_question(
     q_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("question:manage"))
 ):
     q = db.query(Question).filter(Question.id == q_id).first()
     if not q:

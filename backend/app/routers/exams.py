@@ -7,7 +7,7 @@ from app.models.exam import Exam
 from app.models.question import Question
 from app.models.user import User
 from app.schemas.exam import ExamCreate, ExamUpdate, ExamResponse
-from app.core.dependencies import get_current_user, RoleChecker
+from app.core.dependencies import get_current_user, require_permission
 
 router = APIRouter(prefix="/api/exams", tags=["Exam Scheduling CRUD"])
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/exams", tags=["Exam Scheduling CRUD"])
 def create_exam(
     exam_in: ExamCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("exam:create"))
 ):
     if exam_in.end_time <= exam_in.start_time:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="End time must be after start time")
@@ -67,7 +67,7 @@ def update_exam(
     exam_id: int,
     exam_in: ExamUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("exam:create"))
 ):
     exam = db.query(Exam).filter(Exam.id == exam_id).first()
     if not exam:
@@ -102,7 +102,7 @@ def update_exam(
 def delete_exam(
     exam_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Admin", "Faculty"]))
+    current_user: User = Depends(require_permission("exam:create"))
 ):
     exam = db.query(Exam).filter(Exam.id == exam_id).first()
     if not exam:

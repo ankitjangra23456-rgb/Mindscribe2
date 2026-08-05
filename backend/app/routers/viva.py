@@ -10,9 +10,7 @@ from app.models.viva_scoring import VivaResponse
 from app.models.user import User
 from app.schemas.viva import VivaSessionResponse
 from app.schemas.viva_scoring import VivaReplyRequest, VivaResponseResult
-from app.core.dependencies import get_current_user, RoleChecker
-from app.services.viva_ai import generate_viva_followup
-from app.services.viva_scorer import calculate_semantic_consistency
+from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/viva", tags=["AI Viva Engine"])
 
@@ -20,7 +18,7 @@ router = APIRouter(prefix="/api/viva", tags=["AI Viva Engine"])
 def trigger_viva_generation(
     attempt_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Student", "Faculty", "Admin"]))
+    current_user: User = Depends(get_current_user)
 ):
     attempt = db.query(Attempt).filter(Attempt.id == attempt_id).first()
     if not attempt:
@@ -66,7 +64,7 @@ def trigger_viva_generation(
 def submit_viva_reply(
     req: VivaReplyRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Student", "Admin"]))
+    current_user: User = Depends(get_current_user)
 ):
     viva_q = db.query(VivaQuestion).filter(VivaQuestion.id == req.viva_question_id).first()
     if not viva_q:

@@ -11,7 +11,7 @@ from app.models.adaptive import AdaptiveStateLog  # pyrefly: ignore [missing-imp
 from app.models.user import User  # pyrefly: ignore [missing-import] # type: ignore
 from app.schemas.attempt import AttemptStartResponse, AttemptSubmitRequest, AttemptResultResponse  # pyrefly: ignore [missing-import] # type: ignore
 from app.schemas.adaptive import SingleQuestionEvaluateRequest, AdaptiveLogResponse  # pyrefly: ignore [missing-import] # type: ignore
-from app.core.dependencies import get_current_user, RoleChecker  # pyrefly: ignore [missing-import] # type: ignore
+from app.core.dependencies import get_current_user, require_permission  # pyrefly: ignore [missing-import] # type: ignore
 from app.services.adaptive_engine import log_adaptive_shift  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/attempts", tags=["Exam Delivery & Attempts"])
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/attempts", tags=["Exam Delivery & Attempts"])
 def start_exam_attempt(
     exam_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Student", "Admin"]))
+    current_user: User = Depends(get_current_user)
 ):
     exam = db.query(Exam).filter(Exam.id == exam_id).first()
     if not exam:
@@ -72,7 +72,7 @@ def evaluate_single_question_adaptive(
     attempt_id: int,
     req: SingleQuestionEvaluateRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Student", "Admin"]))
+    current_user: User = Depends(get_current_user)
 ):
     attempt = db.query(Attempt).filter(
         Attempt.id == attempt_id,
@@ -116,7 +116,7 @@ def submit_exam_attempt(
     attempt_id: int,
     submit_in: AttemptSubmitRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Student", "Admin"]))
+    current_user: User = Depends(get_current_user)
 ):
     attempt = db.query(Attempt).filter(
         Attempt.id == attempt_id,
@@ -185,7 +185,7 @@ def submit_exam_attempt(
 @router.get("/student/me", response_model=List[AttemptResultResponse])
 def get_my_attempts(
     db: Session = Depends(get_db),
-    current_user: User = Depends(RoleChecker(["Student"]))
+    current_user: User = Depends(require_permission("results:view_own"))
 ):
     attempts = db.query(Attempt).filter(Attempt.student_id == current_user.id).all()
     return attempts
