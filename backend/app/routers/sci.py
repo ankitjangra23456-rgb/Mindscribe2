@@ -23,15 +23,22 @@ def compute_sci_endpoint(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+from app.models.attempt import Attempt
+
 @router.get("/attempt/{attempt_id}", response_model=SkillConfidenceRecordResponse)
 def get_sci_for_attempt(
     attempt_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    record = db.query(SkillConfidenceRecord).filter(SkillConfidenceRecord.attempt_id == attempt_id).first()
+    user_permissions = {p.name for r in current_user.roles for p in r.permissions}
+    query = db.query(SkillConfidenceRecord).join(Attempt).filter(SkillConfidenceRecord.attempt_id == attempt_id)
+    if "results:view_all" not in user_permissions:
+        query = query.filter(Attempt.student_id == current_user.id)
+
+    record = query.first()
     if not record:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SCI record not computed for this attempt yet")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SCI record not found or access denied")
     return record
 
 @router.get("/exam/{exam_id}", response_model=List[SkillConfidenceRecordResponse])

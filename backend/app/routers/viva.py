@@ -93,7 +93,12 @@ def get_viva_session(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    session = db.query(VivaSession).filter(VivaSession.attempt_id == attempt_id).first()
+    user_permissions = {p.name for r in current_user.roles for p in r.permissions}
+    query = db.query(VivaSession).filter(VivaSession.attempt_id == attempt_id)
+    if "results:view_all" not in user_permissions:
+        query = query.filter(VivaSession.student_id == current_user.id)
+
+    session = query.first()
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Viva session not generated for this attempt")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Viva session not found or access denied")
     return session

@@ -108,7 +108,11 @@ def get_attempt_adaptive_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    logs = db.query(AdaptiveStateLog).filter(AdaptiveStateLog.attempt_id == attempt_id).order_by(AdaptiveStateLog.timestamp.asc()).all()
+    user_permissions = {p.name for r in current_user.roles for p in r.permissions}
+    query = db.query(AdaptiveStateLog).join(Attempt).filter(AdaptiveStateLog.attempt_id == attempt_id)
+    if "results:view_all" not in user_permissions:
+        query = query.filter(Attempt.student_id == current_user.id)
+    logs = query.order_by(AdaptiveStateLog.timestamp.asc()).all()
     return logs
 
 @router.post("/{attempt_id}/submit", response_model=AttemptResultResponse)
@@ -196,7 +200,12 @@ def get_attempt_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    attempt = db.query(Attempt).filter(Attempt.id == attempt_id).first()
+    user_permissions = {p.name for r in current_user.roles for p in r.permissions}
+    query = db.query(Attempt).filter(Attempt.id == attempt_id)
+    if "results:view_all" not in user_permissions:
+        query = query.filter(Attempt.student_id == current_user.id)
+
+    attempt = query.first()
     if not attempt:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Attempt not found or access denied")
     return attempt
