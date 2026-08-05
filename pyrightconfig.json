@@ -5,6 +5,8 @@
   "extraPaths": [
     "backend"
   ],
-  "reportMissingImports": "none",
-  "reportMissingModuleSource": "none"
+  "venvPath": "backend",
+  "venv": "venv",
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false
 }
