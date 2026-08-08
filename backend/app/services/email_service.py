@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def send_otp_email(to_email: str, otp_code: str) -> bool:
+def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER", "").strip()
@@ -15,8 +15,9 @@ def send_otp_email(to_email: str, otp_code: str) -> bool:
     sender_email = os.getenv("SMTP_SENDER", smtp_user or "noreply@mindscribe.ai").strip()
 
     if not smtp_user or not smtp_pass:
-        print(f"[Email Service Note] SMTP credentials missing (user={bool(smtp_user)}, pass={bool(smtp_pass)}). OTP: {otp_code} for {to_email}")
-        return False
+        msg = f"SMTP credentials missing in env (SMTP_USER='{smtp_user}', SMTP_PASSWORD={'set' if smtp_pass else 'empty'})"
+        print(f"[Email Service Note] {msg}")
+        return False, msg
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"{otp_code} is your Mindscribe ExamX AI Verification Code"
@@ -44,6 +45,7 @@ def send_otp_email(to_email: str, otp_code: str) -> bool:
     msg.attach(MIMEText(html_body, "html"))
 
     # Attempt 1: TLS on port 587 (or configured port)
+    err1 = ""
     try:
         if smtp_port == 465:
             server = smtplib.SMTP_SSL(smtp_host, 465, timeout=10)
@@ -53,19 +55,19 @@ def send_otp_email(to_email: str, otp_code: str) -> bool:
         server.login(smtp_user, smtp_pass)
         server.sendmail(sender_email, to_email, msg.as_string())
         server.quit()
-        print(f"[Email Service] Successfully sent OTP email to {to_email} via port {smtp_port}")
-        return True
+        return True, f"Sent via port {smtp_port}"
     except Exception as err587:
-        print(f"[Email Service Warning] Port {smtp_port} failed for {to_email}: {err587}. Trying fallback SSL port 465...")
+        err1 = str(err587)
+        print(f"[Email Service Warning] Port {smtp_port} failed: {err587}")
 
-    # Attempt 2: Fallback to SSL on port 465 if port 587 was blocked/failed
+    # Attempt 2: Fallback to SSL on port 465
     try:
         server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10)
         server.login(smtp_user, smtp_pass)
         server.sendmail(sender_email, to_email, msg.as_string())
         server.quit()
-        print(f"[Email Service] Successfully sent OTP email to {to_email} via SSL port 465 fallback")
-        return True
+        return True, "Sent via fallback SSL port 465"
     except Exception as err465:
-        print(f"[Email Service Error] Both port {smtp_port} and 465 failed for {to_email}: {err465}")
-        return False
+        err2 = str(err465)
+        print(f"[Email Service Error] Both failed: 587={err1}, 465={err2}")
+        return False, f"587 err: {err1} | 465 err: {err2}"

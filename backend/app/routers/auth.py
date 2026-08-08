@@ -29,11 +29,12 @@ def send_otp(otp_in: SendOTPRequest):
     print(f"==========================================\n")
 
     # Send real email via SMTP if configured
-    email_sent = send_otp_email(otp_in.email, code)
+    email_sent, debug_info = send_otp_email(otp_in.email, code)
 
     return {
         "message": f"6-Digit OTP Code sent to {otp_in.email}",
-        "email_sent": email_sent
+        "email_sent": email_sent,
+        "debug_info": debug_info
     }
 
 @router.post("/verify-otp")
