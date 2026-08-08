@@ -42,3 +42,10 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class SendOTPRequest(BaseModel):
+    email: EmailStr
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp_code: str

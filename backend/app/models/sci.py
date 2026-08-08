@@ -8,8 +8,8 @@ class SkillConfidenceRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     attempt_id = Column(Integer, ForeignKey('Attempts.id', ondelete="CASCADE"), nullable=False, unique=True)
-    student_id = Column(Integer, ForeignKey('Users.id', ondelete="CASCADE"), nullable=False)
-    exam_id = Column(Integer, ForeignKey('Exams.id', ondelete="CASCADE"), nullable=False)
+    student_id = Column(Integer, ForeignKey('Users.id', ondelete="NO ACTION"), nullable=False)
+    exam_id = Column(Integer, ForeignKey('Exams.id', ondelete="NO ACTION"), nullable=False)
 
     ep_score = Column(Float, nullable=False)
     vp_score = Column(Float, nullable=False)

@@ -7,6 +7,7 @@ import {
   CheckCircle, Clock, ArrowRight, Shield
 } from 'lucide-react';
 import { useQuestions } from '../hooks/useQuestions';
+import { useLeaderboard } from '../hooks/useSCI';
 
 function StatCard({ label, value, icon: Icon, color = 'blue', sub }) {
   const styles = {
@@ -47,6 +48,7 @@ export default function FacultyDashboard() {
   const [search,    setSearch]    = useState('');
   const [diffFilter,setDiffFilter]= useState('All');
   const { questions, removeQuestion } = useQuestions();
+  const { candidates = [] } = useLeaderboard();
 
   const [showAiGenModal, setShowAiGenModal] = useState(false);
   const [aiTopic, setAiTopic]               = useState('');
@@ -73,7 +75,7 @@ export default function FacultyDashboard() {
     { id: 'analytics',        label: 'Analytics',               icon: TrendingUp },
   ];
 
-  const filteredQuestions = (questions || MOCK_QUESTIONS).filter(q => {
+  const filteredQuestions = (questions || []).filter(q => {
     const textStr = q.text || q.question || '';
     const subjStr = q.subject || '';
     const matchesSearch = textStr.toLowerCase().includes(search.toLowerCase()) || subjStr.toLowerCase().includes(search.toLowerCase());
@@ -155,7 +157,7 @@ export default function FacultyDashboard() {
               <div className="card p-6 shadow-card space-y-4">
                 <h2 className="text-base font-bold text-slate-900">Top Performers</h2>
                 <div className="space-y-3">
-                  {MOCK_CANDIDATES.slice(0, 5).map((c, i) => (
+                  {candidates.slice(0, 5).map((c, i) => (
                     <div key={c.id} className="flex items-center gap-3">
                       <span className="text-xs font-bold text-slate-400 w-4">#{i + 1}</span>
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold shrink-0">
@@ -580,9 +582,10 @@ function CreateExamForm() {
 
 function StudentsTab() {
   const [search, setSearch] = useState('');
-  const filtered = MOCK_CANDIDATES.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.university.toLowerCase().includes(search.toLowerCase())
+  const { candidates = [] } = useLeaderboard();
+  const filtered = candidates.filter(c =>
+    (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
+    (c.university || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (

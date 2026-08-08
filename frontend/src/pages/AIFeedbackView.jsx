@@ -233,7 +233,7 @@ export default function AIFeedbackView() {
                     <tr key={n} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 font-bold text-slate-600">{n}</td>
                       <td className="px-4 py-3 text-slate-700 max-w-xs truncate">
-                        {MOCK_EXAM_QUESTIONS[n-1]?.text || '...'}
+                        {questions[n-1]?.text || questions[n-1]?.question || `Question ${n}`}
                       </td>
                       <td className="px-4 py-3 text-slate-600">{correct ? 'B' : 'A'}</td>
                       <td className="px-4 py-3 text-emerald-700 font-semibold">B</td>

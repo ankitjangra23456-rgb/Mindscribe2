@@ -7,7 +7,7 @@ class OfflineSyncQueue(Base):
     __tablename__ = 'OfflineSyncQueue'
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey('Users.id', ondelete="CASCADE"), nullable=False)
+    student_id = Column(Integer, ForeignKey('Users.id', ondelete="NO ACTION"), nullable=False)
     attempt_id = Column(Integer, ForeignKey('Attempts.id', ondelete="CASCADE"), nullable=False)
     payload_json = Column(Text, nullable=False)
     status = Column(String(50), default="queued", nullable=False)

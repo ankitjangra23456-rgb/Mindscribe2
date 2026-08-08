@@ -11,6 +11,8 @@ from app.models.user import User  # pyrefly: ignore [missing-import] # type: ign
 from app.schemas.viva import VivaSessionResponse  # pyrefly: ignore [missing-import] # type: ignore
 from app.schemas.viva_scoring import VivaReplyRequest, VivaResponseResult  # pyrefly: ignore [missing-import] # type: ignore
 from app.core.dependencies import get_current_user  # pyrefly: ignore [missing-import] # type: ignore
+from app.services.viva_ai import generate_viva_followup  # pyrefly: ignore [missing-import] # type: ignore
+from app.services.viva_scorer import calculate_semantic_consistency  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/viva", tags=["AI Viva Engine"])
 

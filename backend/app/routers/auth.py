@@ -4,12 +4,50 @@ from sqlalchemy.orm import Session  # pyrefly: ignore [missing-import] # type: i
 
 from app.database import get_db  # pyrefly: ignore [missing-import] # type: ignore
 from app.models.user import User, Role, Permission, RefreshToken  # pyrefly: ignore [missing-import] # type: ignore
-from app.schemas.auth import UserRegister, UserLogin, Token, RefreshTokenRequest, UserResponse  # pyrefly: ignore [missing-import] # type: ignore
+import random
+from app.schemas.auth import UserRegister, UserLogin, Token, RefreshTokenRequest, UserResponse, SendOTPRequest, VerifyOTPRequest  # pyrefly: ignore [missing-import] # type: ignore
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, decode_token  # pyrefly: ignore [missing-import] # type: ignore
 from app.core.dependencies import get_current_user, RoleChecker, require_permission
 from app.config import settings  # pyrefly: ignore [missing-import] # type: ignore
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication & RBAC"])
+
+# In-memory OTP storage for rapid testing & email delivery fallback
+OTP_STORE = {}
+
+from app.services.email_service import send_otp_email
+
+@router.post("/send-otp")
+def send_otp(otp_in: SendOTPRequest):
+    code = f"{random.randint(100000, 999999)}"
+    OTP_STORE[otp_in.email.lower()] = {
+        "code": code,
+        "created_at": datetime.utcnow()
+    }
+    print(f"\n==========================================")
+    print(f"[OTP GENERATED] Email: {otp_in.email} | Code: {code}")
+    print(f"==========================================\n")
+
+    # Send real email via SMTP if configured
+    email_sent = send_otp_email(otp_in.email, code)
+
+    return {
+        "message": f"6-Digit OTP Code sent to {otp_in.email}",
+        "email_sent": email_sent
+    }
+
+@router.post("/verify-otp")
+def verify_otp(otp_in: VerifyOTPRequest):
+    entry = OTP_STORE.get(otp_in.email.lower())
+    if not entry:
+        raise HTTPException(status_code=400, detail="OTP expired or not sent for this email. Please request a new code.")
+
+    if entry["code"] != otp_in.otp_code:
+        raise HTTPException(status_code=400, detail="Incorrect 6-digit OTP code. Please check your email.")
+
+    # Clean up used OTP
+    OTP_STORE.pop(otp_in.email.lower(), None)
+    return {"valid": True, "message": "OTP verified successfully"}
 
 def ensure_roles_and_permissions_exist(db: Session):
     default_roles = ["Admin", "Faculty", "Student"]

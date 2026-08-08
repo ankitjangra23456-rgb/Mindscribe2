@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useLocation } from 'react-router-dom';
 import { Users, BookOpen, Award, BarChart2, Shield, Sparkles, TrendingUp, Target, Search, Eye, Trash2, Edit2, PlusCircle } from 'lucide-react';
+import { useLeaderboard } from '../hooks/useSCI';
 
 function StatCard({ label, value, icon: Icon, trend, color = 'blue' }) {
   const iconClass = {
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [search, setSearch] = useState('');
   const [auditFilter, setAuditFilter] = useState('All');
+  const { candidates = [] } = useLeaderboard();
 
   useEffect(() => {
     const path = location.pathname;
@@ -203,7 +205,7 @@ export default function AdminDashboard() {
                   ))}</tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {MOCK_CANDIDATES.map(c => (
+                  {candidates.map(c => (
                     <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">

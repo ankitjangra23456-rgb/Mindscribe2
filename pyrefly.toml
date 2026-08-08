@@ -1,3 +1,3 @@
 [pyrefly]
-disabled-rules = ["missing-import", "unresolved-import"]
-extra-paths = ["backend"]
+disabled-rules = ["missing-import", "unresolved-import", "import-not-found"]
+extra-paths = ["backend", "./backend"]

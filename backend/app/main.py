@@ -2,6 +2,7 @@ from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+import app.models  # Ensure all SQLAlchemy models are registered
 from app.database import engine, Base, check_db_connection
 from app.config import settings
 from app.routers import (
@@ -23,10 +24,10 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-# Enable CORS for local development
+# CORS — controlled via ALLOWED_ORIGINS env var
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

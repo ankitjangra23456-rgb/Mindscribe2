@@ -9,7 +9,7 @@ class PaperLedger(Base):
     id = Column(Integer, primary_key=True, index=True)
     event_type = Column(String(50), nullable=False)
     exam_id = Column(Integer, ForeignKey('Exams.id', ondelete="CASCADE"), nullable=False)
-    actor_user_id = Column(Integer, ForeignKey('Users.id', ondelete="CASCADE"), nullable=False)
+    actor_user_id = Column(Integer, ForeignKey('Users.id', ondelete="NO ACTION"), nullable=False)
     previous_hash = Column(String(64), nullable=False)
     current_hash = Column(String(64), nullable=False)
     payload_data = Column(Text, nullable=False)

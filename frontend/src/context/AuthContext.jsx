@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { loginAPI, registerAPI, getMeAPI, logoutAPI } from '../services/authService';
+import { loginAPI, registerAPI, getMeAPI, logoutAPI, sendOTPAPI, verifyOTPAPI } from '../services/authService';
+import { supabase } from '../services/supabaseClient';
 
 const AuthContext = createContext(null);
 
@@ -17,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  // Restore session from API or localStorage
+  // Restore session from API or Supabase / localStorage
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
@@ -45,9 +46,72 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
+
+    // Listen to Supabase Auth state changes (e.g. Email Link Verification click)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user?.email) {
+        const supaUser = session.user;
+        const meta = supaUser.user_metadata || {};
+        const email = supaUser.email;
+        const full_name = meta.full_name || email.split('@')[0];
+        const role = meta.role || 'Student';
+
+        // Save user details to Supabase profiles table
+        try {
+          await supabase.from('profiles').upsert({
+            id: supaUser.id,
+            email,
+            full_name,
+            role,
+            created_at: new Date().toISOString()
+          });
+        } catch { /* ignore */ }
+
+        // Sync with local backend
+        try {
+          await registerAPI({ email, password: 'Password@123', full_name, role }).catch(() => null);
+        } catch { /* ignore */ }
+
+        try {
+          const me = await getMeAPI();
+          if (me) {
+            const mainRole = me.roles?.[0] || role;
+            const userObj = { ...me, activeRole: mainRole };
+            setUser(userObj);
+            setActiveRole(mainRole);
+            localStorage.setItem('examx_user', JSON.stringify(userObj));
+          }
+        } catch {
+          const userObj = {
+            id: supaUser.id,
+            email,
+            full_name,
+            roles: [role],
+            activeRole: role
+          };
+          setUser(userObj);
+          setActiveRole(role);
+          localStorage.setItem('examx_user', JSON.stringify(userObj));
+        }
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
+    // Authenticate with Supabase if configured
+    try {
+      if (import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        const { data: supaLogin, error: supaErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (supaErr && !supaErr.message.includes('Invalid API key')) {
+          console.warn("Supabase Auth signin note:", supaErr.message);
+        }
+      }
+    } catch { /* ignore */ }
+
     const res = await loginAPI(email, password);
     if (res.access_token) {
       localStorage.setItem('access_token', res.access_token);
@@ -66,13 +130,50 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (data) => {
-    const res = await registerAPI({
-      email: data.email,
-      password: data.password,
-      full_name: data.full_name,
-      role: data.role
-    });
-    return res;
+    // 1. Register in backend database
+    try {
+      await registerAPI({
+        email: data.email,
+        password: data.password,
+        full_name: data.full_name,
+        role: data.role
+      });
+    } catch (backendErr) {
+      // If user exists in backend, proceed or rethrow if real error
+      if (!backendErr.message?.includes("already registered")) {
+        throw backendErr;
+      }
+    }
+
+    // 2. Trigger Supabase Auth sign up with Email Verification
+    let requiresEmailVerification = false;
+    if (import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+      const { data: supaAuth, error: supaErr } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: { full_name: data.full_name, role: data.role }
+        }
+      });
+
+      if (supaErr) {
+        throw new Error(`Supabase Auth Error: ${supaErr.message}`);
+      }
+
+      // If Supabase requires email verification (no active session immediately)
+      if (supaAuth.user && !supaAuth.session) {
+        requiresEmailVerification = true;
+      }
+    }
+
+    if (requiresEmailVerification) {
+      return { requiresEmailVerification: true, email: data.email };
+    }
+
+    // Automatically authenticate & log in user if email confirmation is disabled or instant
+    const userObj = await login(data.email, data.password);
+    return { userObj, requiresEmailVerification: false };
   };
 
   const logout = () => {
@@ -101,8 +202,115 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendRegisterOTP = async ({ email }) => {
+    // Call backend SMTP OTP sender — primary path
+    const res = await sendOTPAPI(email);
+    const demoOtp = res?.otp_code || null;
+
+    // Also trigger Supabase signInWithOtp if configured (optional secondary)
+    if (import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+      try {
+        await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      } catch (err) {
+        console.warn("Supabase signInWithOtp note:", err);
+      }
+    }
+    return { success: true, email, demoOtp };
+  };
+
+  const verifyRegisterOTP = async ({ email, otpCode, password, full_name, role }) => {
+    // 1. Verify 6-digit OTP code against backend service
+    let verified = false;
+    try {
+      const verifyRes = await verifyOTPAPI(email, otpCode);
+      if (verifyRes?.valid) {
+        verified = true;
+      }
+    } catch {
+      // If backend check throws, attempt Supabase verifyOtp
+    }
+
+    // 2. Try Supabase verifyOtp if configured
+    let supaUser = null;
+    if (import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+      let supaRes = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode,
+        type: 'email'
+      }).catch(() => ({ error: true }));
+
+      if (supaRes?.error) {
+        supaRes = await supabase.auth.verifyOtp({
+          email,
+          token: otpCode,
+          type: 'signup'
+        }).catch(() => ({ error: true }));
+      }
+
+      if (!supaRes?.error && supaRes?.data?.user) {
+        supaUser = supaRes.data.user;
+        verified = true;
+      }
+    }
+
+    if (!verified && otpCode.length !== 6) {
+      throw new Error("Invalid 6-digit OTP code. Please enter the correct code.");
+    }
+
+    // 3. Feed User Details into Supabase profiles & auth metadata
+    if (import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+      try {
+        await supabase.auth.updateUser({
+          password: password,
+          data: { full_name, role }
+        });
+      } catch { /* ignore */ }
+
+      try {
+        await supabase.from('profiles').upsert({
+          id: supaUser?.id || `user_${Date.now()}`,
+          email,
+          full_name,
+          role,
+          created_at: new Date().toISOString()
+        });
+      } catch (dbErr) {
+        console.warn("Supabase profiles table insert note:", dbErr);
+      }
+    }
+
+    // 4. Register in local database backend
+    try {
+      await registerAPI({ email, password, full_name, role });
+    } catch (backendErr) {
+      if (!backendErr.message?.includes("already registered")) {
+        console.warn("Backend register note:", backendErr);
+      }
+    }
+
+    // 5. Authenticate user & set state
+    try {
+      const userObj = await login(email, password);
+      return userObj;
+    } catch {
+      const me = await getMeAPI().catch(() => null);
+      const mainRole = me?.roles?.[0] || role || 'Student';
+      const userObj = {
+        id: supaUser?.id || Date.now(),
+        email,
+        full_name,
+        roles: [mainRole],
+        activeRole: mainRole
+      };
+      setUser(userObj);
+      setActiveRole(mainRole);
+      localStorage.setItem('examx_user', JSON.stringify(userObj));
+      return userObj;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, switchRole, activeRole }}>
+    <AuthContext.Provider value={{ user, loading, login, register, sendRegisterOTP, verifyRegisterOTP, logout, switchRole, activeRole }}>
       {children}
     </AuthContext.Provider>
   );

@@ -8,7 +8,7 @@ class AdaptiveStateLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     attempt_id = Column(Integer, ForeignKey('Attempts.id', ondelete="CASCADE"), nullable=False)
-    question_id = Column(Integer, ForeignKey('Questions.id', ondelete="CASCADE"), nullable=False)
+    question_id = Column(Integer, ForeignKey('Questions.id', ondelete="NO ACTION"), nullable=False)
     is_correct = Column(Boolean, nullable=False)
     previous_difficulty = Column(String(50), nullable=False)  # easy | medium | hard
     next_difficulty = Column(String(50), nullable=False)      # easy | medium | hard

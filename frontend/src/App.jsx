@@ -39,7 +39,7 @@ function LoadingScreen() {
 function RootRedirect() {
   const { user, loading, activeRole } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (!user)   return <Navigate to="/login" replace />;
+  if (!user)   return <Navigate to="/register" replace />;
 
   if (activeRole === 'Admin')     return <Navigate to="/admin"     replace />;
   if (activeRole === 'Faculty')   return <Navigate to="/faculty"   replace />;

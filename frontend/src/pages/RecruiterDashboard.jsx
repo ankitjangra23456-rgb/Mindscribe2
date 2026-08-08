@@ -60,7 +60,7 @@ export default function RecruiterDashboard() {
         {/* Summary stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
-            { label: 'Candidates Available', value: MOCK_CANDIDATES.filter(c => c.available).length, icon: Users,    color: 'bg-blue-100 text-blue-600' },
+            { label: 'Candidates Available', value: (candidates || []).length, icon: Users,    color: 'bg-blue-100 text-blue-600' },
             { label: 'Shortlisted',          value: shortlist.size,                                   icon: Star,     color: 'bg-amber-100 text-amber-600' },
             { label: 'Avg SCI Score',        value: '88%',                                            icon: Target,   color: 'bg-emerald-100 text-emerald-600' },
             { label: 'Profiles Viewed',      value: '12',                                             icon: Eye,      color: 'bg-purple-100 text-purple-600' },

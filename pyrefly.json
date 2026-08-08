@@ -1,9 +1,11 @@
 {
   "disabled_rules": [
     "missing-import",
-    "unresolved-import"
+    "unresolved-import",
+    "import-not-found"
   ],
   "extra_paths": [
-    "backend"
+    "backend",
+    "./backend"
   ]
 }

@@ -20,6 +20,16 @@ export const refreshTokenAPI = async (refreshToken) => {
   return response.data;
 };
 
+export const sendOTPAPI = async (email) => {
+  const response = await API.post('/auth/send-otp', { email });
+  return response.data;
+};
+
+export const verifyOTPAPI = async (email, otpCode) => {
+  const response = await API.post('/auth/verify-otp', { email, otp_code: otpCode });
+  return response.data;
+};
+
 export const logoutAPI = async () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
