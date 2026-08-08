@@ -37,7 +37,17 @@ def send_otp(otp_in: SendOTPRequest):
         "debug_info": debug_info
     }
 
-@router.post("/verify-otp")
+@router.get("/test-smtp")
+def test_smtp_debug(email: str = "ankit.jangra.23455@gmail.com"):
+    code = f"{random.randint(100000, 999999)}"
+    success, debug_msg = send_otp_email(email, code)
+    return {
+        "success": success,
+        "debug_msg": debug_msg,
+        "smtp_user": os.getenv("SMTP_USER", "")[:5] + "...",
+        "smtp_host": os.getenv("SMTP_HOST", "smtp.gmail.com"),
+        "smtp_port": os.getenv("SMTP_PORT", "587")
+    }
 def verify_otp(otp_in: VerifyOTPRequest):
     entry = OTP_STORE.get(otp_in.email.lower())
     if not entry:
