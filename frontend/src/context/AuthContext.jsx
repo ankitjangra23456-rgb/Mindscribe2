@@ -203,19 +203,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   const sendRegisterOTP = async ({ email }) => {
-    // Call backend SMTP OTP sender — primary path
-    const res = await sendOTPAPI(email);
-    const demoOtp = res?.otp_code || null;
+    let backendSuccess = false;
+    let backendErr = '';
 
-    // Also trigger Supabase signInWithOtp if configured (optional secondary)
-    if (import.meta.env.VITE_SUPABASE_ANON_KEY && import.meta.env.VITE_SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
-      try {
-        await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-      } catch (err) {
-        console.warn("Supabase signInWithOtp note:", err);
-      }
+    try {
+      const res = await sendOTPAPI(email);
+      if (res) backendSuccess = true;
+    } catch (err) {
+      backendErr = err.response?.data?.detail || err.message || 'Failed to connect to backend server';
     }
-    return { success: true, email, demoOtp };
+
+    if (!backendSuccess) {
+      throw new Error(`OTP Delivery Failed: ${backendErr}`);
+    }
+
+    return { success: true, email };
   };
 
   const verifyRegisterOTP = async ({ email, otpCode, password, full_name, role }) => {
@@ -253,8 +255,8 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    if (!verified && otpCode.length !== 6) {
-      throw new Error("Invalid 6-digit OTP code. Please enter the correct code.");
+    if (!verified) {
+      throw new Error("Invalid 6-digit OTP code. The code you entered does not match or has expired. Please check your email and try again.");
     }
 
     // 3. Feed User Details into Supabase profiles & auth metadata
