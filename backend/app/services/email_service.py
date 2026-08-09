@@ -79,7 +79,7 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
                     "subject": f"{otp_code} is your Mindscribe ExamX AI Verification Code",
                     "html": html_body
                 },
-                timeout=5
+                timeout=10
             )
             if res.status_code in (200, 201, 202):
                 print(f"[Email Service] Successfully sent OTP to {to_email} via Resend HTTP API")
