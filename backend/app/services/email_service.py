@@ -59,9 +59,14 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
         except Exception as e:
             print(f"[Email Service Warning] Brevo HTTP failed: {e}")
 
-    # --- Resend HTTP API (Port 443) ---
+    # --- Resend HTTP API (Port 443 — 100% Free 3,000 emails/mo) ---
     if resend_api_key:
         try:
+            from_addr = "onboarding@resend.dev" if "resend.dev" in sender_email or not sender_email.endswith(".com") else sender_email
+            # Use onboarding@resend.dev for instant free tier sending
+            if not from_addr or "gmail.com" in from_addr:
+                from_addr = "onboarding@resend.dev"
+
             res = requests.post(
                 "https://api.resend.com/emails",
                 headers={
@@ -69,7 +74,7 @@ def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "from": f"Mindscribe ExamX AI <{sender_email}>",
+                    "from": f"Mindscribe ExamX AI <{from_addr}>",
                     "to": [to_email],
                     "subject": f"{otp_code} is your Mindscribe ExamX AI Verification Code",
                     "html": html_body
