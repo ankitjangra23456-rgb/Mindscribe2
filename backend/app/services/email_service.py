@@ -13,6 +13,7 @@ DEFAULT_RESEND_KEY = base64.b64decode("cmVfUUg0cDV4akVfUUFjcHJwZkVDNFU4Wll3V2VUO
 DEFAULT_SMTP_PASS  = base64.b64decode("cHN0c3Z4YmZuem12dmZvcQ==").decode('utf-8')
 
 def send_otp_email(to_email: str, otp_code: str) -> tuple[bool, str]:
+    brevo_api_key = os.getenv("BREVO_API_KEY", "").strip()
     resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
     if not resend_api_key or "your_" in resend_api_key:
         resend_api_key = DEFAULT_RESEND_KEY
