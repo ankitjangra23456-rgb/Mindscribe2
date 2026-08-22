@@ -56,9 +56,14 @@ export default function Login() {
     setInfoMsg('');
     setLoading(true);
     try {
-      await sendRegisterOTP({ email });
+      const res = await sendRegisterOTP({ email });
       setOtpSent(true);
-      setInfoMsg(`6-Digit OTP Sent to ${email}! Check your inbox.`);
+      if (res?.otp_code) {
+        setOtpCode(res.otp_code);
+        setInfoMsg(`6-Digit OTP Code (${res.otp_code}) sent to ${email}!`);
+      } else {
+        setInfoMsg(`6-Digit OTP Code sent to ${email}! Check your inbox.`);
+      }
     } catch (err) {
       setError(err.message || 'Failed to send OTP email');
     } finally {

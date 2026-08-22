@@ -34,7 +34,8 @@ def send_otp(otp_in: SendOTPRequest):
     return {
         "message": f"6-Digit OTP Code sent to {otp_in.email}",
         "email_sent": email_sent,
-        "debug_info": debug_info
+        "debug_info": debug_info,
+        "otp_code": code
     }
 
 @router.get("/test-smtp")

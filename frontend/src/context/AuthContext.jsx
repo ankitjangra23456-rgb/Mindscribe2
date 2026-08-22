@@ -205,10 +205,14 @@ export const AuthProvider = ({ children }) => {
   const sendRegisterOTP = async ({ email }) => {
     let backendSuccess = false;
     let backendErr = '';
+    let otpCode = '';
 
     try {
       const res = await sendOTPAPI(email);
-      if (res) backendSuccess = true;
+      if (res) {
+        backendSuccess = true;
+        otpCode = res.otp_code || '';
+      }
     } catch (err) {
       backendErr = err.response?.data?.detail || err.message || 'Failed to connect to backend server';
     }
@@ -217,7 +221,7 @@ export const AuthProvider = ({ children }) => {
       throw new Error(`OTP Delivery Failed: ${backendErr}`);
     }
 
-    return { success: true, email };
+    return { success: true, email, otp_code: otpCode };
   };
 
   const verifyRegisterOTP = async ({ email, otpCode, password, full_name, role }) => {
