@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { loginAPI, registerAPI, getMeAPI, logoutAPI, sendOTPAPI, verifyOTPAPI } from '../services/authService';
+import { loginAPI, registerAPI, getMeAPI, logoutAPI, sendOTPAPI, verifyOTPAPI, loginWithOTPAPI } from '../services/authService';
 import { supabase } from '../services/supabaseClient';
 
 const AuthContext = createContext(null);
@@ -311,8 +311,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithOTP = async (email, otpCode) => {
+    const res = await loginWithOTPAPI(email, otpCode);
+    if (res.access_token) {
+      localStorage.setItem('access_token', res.access_token);
+      if (res.refresh_token) {
+        localStorage.setItem('refresh_token', res.refresh_token);
+      }
+      const me = await getMeAPI();
+      const mainRole = me.roles?.[0] || 'Student';
+      const userObj = { ...me, activeRole: mainRole };
+      setUser(userObj);
+      setActiveRole(mainRole);
+      localStorage.setItem('examx_user', JSON.stringify(userObj));
+      return userObj;
+    }
+    throw new Error('OTP Authentication failed');
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, sendRegisterOTP, verifyRegisterOTP, logout, switchRole, activeRole }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithOTP, register, sendRegisterOTP, verifyRegisterOTP, logout, switchRole, activeRole }}>
       {children}
     </AuthContext.Provider>
   );

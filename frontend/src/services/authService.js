@@ -30,6 +30,11 @@ export const verifyOTPAPI = async (email, otpCode) => {
   return response.data;
 };
 
+export const loginWithOTPAPI = async (email, otpCode) => {
+  const response = await API.post('/auth/login-with-otp', { email, otp_code: otpCode });
+  return response.data;
+};
+
 export const logoutAPI = async () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');

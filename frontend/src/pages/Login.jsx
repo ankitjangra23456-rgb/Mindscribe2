@@ -10,28 +10,57 @@ const DEMO_ACCOUNTS = [
 ];
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, loginWithOTP, sendRegisterOTP } = useAuth();
   const navigate  = useNavigate();
 
+  const [mode,     setMode]     = useState('password'); // 'password' | 'otp'
   const [email,    setEmail]    = useState('ankit@example.com');
   const [password, setPassword] = useState('password');
+  const [otpCode,  setOtpCode]  = useState('');
   const [showPwd,  setShowPwd]  = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading,  setLoading]  = useState(false);
+  const [otpSent,  setOtpSent]  = useState(false);
+  const [infoMsg,  setInfoMsg]  = useState('');
   const [error,    setError]    = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setInfoMsg('');
     setLoading(true);
     try {
-      const user = await login(email, password);
-      const role  = user?.roles?.[0];
+      let user;
+      if (mode === 'otp') {
+        user = await loginWithOTP(email, otpCode);
+      } else {
+        user = await login(email, password);
+      }
+      const role = user?.roles?.[0] || user?.activeRole;
       if (role === 'Admin')     navigate('/admin');
       else if (role === 'Faculty')   navigate('/faculty');
       else                           navigate('/student');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.response?.data?.detail || err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOTP = async () => {
+    if (!email) {
+      setError('Please enter your email address first');
+      return;
+    }
+    setError('');
+    setInfoMsg('');
+    setLoading(true);
+    try {
+      await sendRegisterOTP({ email });
+      setOtpSent(true);
+      setInfoMsg(`6-Digit OTP Sent to ${email}! Check your inbox.`);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP email');
     } finally {
       setLoading(false);
     }
@@ -41,18 +70,17 @@ export default function Login() {
     setEmail(acc.email);
     setPassword('password');
     setError('');
+    setInfoMsg('');
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Left — Illustration Panel */}
       <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-600 to-blue-800 flex-col items-center justify-center p-12 relative overflow-hidden">
-        {/* Decorative circles */}
         <div className="absolute -top-20 -left-20 w-80 h-80 bg-white/5 rounded-full"></div>
         <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-white/5 rounded-full"></div>
 
         <div className="relative z-10 text-center text-white space-y-6 max-w-md">
-          {/* Brand */}
           <div className="flex items-center justify-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
               <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -74,7 +102,6 @@ export default function Login() {
             Adaptive exams, AI Viva follow-ups, semantic scoring, and real-time Skill Confidence Index (SCI) — all in one unified platform.
           </p>
 
-          {/* Feature chips */}
           <div className="flex flex-wrap justify-center gap-2 pt-2">
             {['Adaptive Difficulty', 'AI Viva Engine', 'SCI Analytics', 'PWA Offline', 'Tamper-Proof Ledger'].map(f => (
               <span key={f} className="px-3 py-1 rounded-full bg-white/10 text-xs font-semibold text-blue-100 border border-white/20">
@@ -89,24 +116,43 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
 
-          {/* Mobile brand */}
           <div className="lg:hidden text-center mb-8">
             <span className="text-2xl font-extrabold text-blue-600">ExamX</span>
             <span className="text-2xl font-extrabold text-slate-800">AI</span>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 space-y-6">
-
-            {/* Header */}
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Welcome Back!</h1>
               <p className="text-slate-500 text-sm mt-1">Sign in to continue to your account</p>
             </div>
 
+            {/* Auth Mode Toggle */}
+            <div className="flex p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => { setMode('password'); setError(''); setInfoMsg(''); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'password' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Password Login
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('otp'); setError(''); setInfoMsg(''); }}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  mode === 'otp' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                🔑 6-Digit OTP Login
+              </button>
+            </div>
+
             {/* Demo accounts */}
             <div>
               <p className="text-xs font-semibold text-slate-400 mb-2">Quick login as:</p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {DEMO_ACCOUNTS.map(acc => (
                   <button
                     key={acc.label}
@@ -124,7 +170,12 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Error */}
+            {/* Info / Error */}
+            {infoMsg && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
+                ✓ {infoMsg}
+              </div>
+            )}
             {error && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-sm font-medium">
                 {error}
@@ -135,39 +186,66 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="input-base"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="input-base flex-1"
+                  />
+                  {mode === 'otp' && (
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      disabled={loading || !email}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shrink-0 transition-all disabled:opacity-50"
+                    >
+                      {otpSent ? 'Resend' : 'Send OTP'}
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div>
-                <div className="flex justify-between mb-1.5">
-                  <label className="text-sm font-semibold text-slate-700">Password</label>
-                  <a href="#forgot" className="text-xs text-blue-600 hover:underline font-semibold">Forgot Password?</a>
+              {mode === 'password' ? (
+                <div>
+                  <div className="flex justify-between mb-1.5">
+                    <label className="text-sm font-semibold text-slate-700">Password</label>
+                    <a href="#forgot" className="text-xs text-blue-600 hover:underline font-semibold">Forgot Password?</a>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      required
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="input-base pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
-                <div className="relative">
+              ) : (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">6-Digit OTP Code</label>
                   <input
-                    type={showPwd ? 'text' : 'password'}
+                    type="text"
                     required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="input-base pr-10"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value)}
+                    placeholder="e.g. 849201"
+                    className="input-base font-mono text-lg text-center tracking-widest"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd(!showPwd)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  >
-                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
-              </div>
+              )}
 
               <div className="flex items-center gap-2">
                 <input
@@ -182,8 +260,8 @@ export default function Login() {
 
               <button type="submit" disabled={loading} className="btn-primary w-full py-3">
                 {loading
-                  ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div> Signing in...</>
-                  : 'Sign In'
+                  ? <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"></div> Processing...</>
+                  : (mode === 'otp' ? 'Verify OTP & Sign In' : 'Sign In')
                 }
               </button>
             </form>

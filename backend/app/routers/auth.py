@@ -48,6 +48,7 @@ def test_smtp_debug(email: str = "ankit.jangra.23455@gmail.com"):
         "smtp_host": os.getenv("SMTP_HOST", "smtp.gmail.com"),
         "smtp_port": os.getenv("SMTP_PORT", "587")
     }
+@router.post("/verify-otp")
 def verify_otp(otp_in: VerifyOTPRequest):
     entry = OTP_STORE.get(otp_in.email.lower())
     if not entry:
@@ -59,6 +60,65 @@ def verify_otp(otp_in: VerifyOTPRequest):
     # Clean up used OTP
     OTP_STORE.pop(otp_in.email.lower(), None)
     return {"valid": True, "message": "OTP verified successfully"}
+
+@router.post("/login-with-otp", response_model=Token)
+def login_with_otp(otp_in: VerifyOTPRequest, db: Session = Depends(get_db)):
+    entry = OTP_STORE.get(otp_in.email.lower())
+    if not entry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP expired or not requested for this email"
+        )
+    
+    if entry["code"] != otp_in.otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid 6-digit OTP code"
+        )
+
+    if (datetime.utcnow() - entry["created_at"]).total_seconds() > 600:
+        OTP_STORE.pop(otp_in.email.lower(), None)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OTP code expired. Please request a new code."
+        )
+
+    OTP_STORE.pop(otp_in.email.lower(), None)
+
+    user = db.query(User).filter(User.email == otp_in.email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No registered user account found with this email"
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Inactive user account"
+        )
+
+    user_roles = [r.name for r in user.roles]
+    token_data = {"sub": user.email, "roles": user_roles}
+
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data=token_data)
+
+    expires_at = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    db_refresh_token = RefreshToken(
+        token=refresh_token,
+        user_id=user.id,
+        expires_at=expires_at
+    )
+    db.add(db_refresh_token)
+    log_audit_event(db, action="LOGIN_WITH_OTP_SUCCESS", user_id=user.id)
+    db.commit()
+
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer"
+    )
 
 def ensure_roles_and_permissions_exist(db: Session):
     default_roles = ["Admin", "Faculty", "Student"]
