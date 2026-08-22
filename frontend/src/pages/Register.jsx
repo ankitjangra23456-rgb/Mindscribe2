@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, Mail, Lock, User, KeyRound, ArrowRight, RefreshCw, CheckCircle2 } from 'lucide-react';
 
-const ROLES = ['Student', 'Faculty', 'Admin', 'Recruiter'];
+const ROLES = ['Student', 'Faculty', 'Admin'];
 
 export default function Register() {
   const { user, sendRegisterOTP, verifyRegisterOTP } = useAuth();
@@ -23,7 +23,6 @@ export default function Register() {
       const mainRole = user.activeRole || user.roles?.[0] || 'Student';
       if (mainRole === 'Admin') navigate('/admin');
       else if (mainRole === 'Faculty') navigate('/faculty');
-      else if (mainRole === 'Recruiter') navigate('/recruiter');
       else navigate('/student');
     }
   }, [user, navigate]);

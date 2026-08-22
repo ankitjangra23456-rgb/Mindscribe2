@@ -9,7 +9,6 @@ import Register           from './pages/Register';
 import StudentDashboard   from './pages/StudentDashboard';
 import FacultyDashboard   from './pages/FacultyDashboard';
 import AdminDashboard     from './pages/AdminDashboard';
-import RecruiterDashboard from './pages/RecruiterDashboard';
 import AIFeedbackView     from './pages/AIFeedbackView';
 import Profile            from './pages/Profile';
 import Settings           from './pages/Settings';
@@ -43,7 +42,6 @@ function RootRedirect() {
 
   if (activeRole === 'Admin')     return <Navigate to="/admin"     replace />;
   if (activeRole === 'Faculty')   return <Navigate to="/faculty"   replace />;
-  if (activeRole === 'Recruiter') return <Navigate to="/recruiter" replace />;
   return <Navigate to="/student" replace />;
 }
 
@@ -74,10 +72,6 @@ export default function App() {
       {/* ── Admin Protected Routes ── */}
       <Route path="/admin" element={<ProtectedRoute allowedRoles={['Admin']}><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/*" element={<ProtectedRoute allowedRoles={['Admin']}><AdminDashboard /></ProtectedRoute>} />
-
-      {/* ── Recruiter Protected Routes ── */}
-      <Route path="/recruiter" element={<ProtectedRoute allowedRoles={['Recruiter', 'Admin']}><RecruiterDashboard /></ProtectedRoute>} />
-      <Route path="/recruiter/*" element={<ProtectedRoute allowedRoles={['Recruiter', 'Admin']}><RecruiterDashboard /></ProtectedRoute>} />
 
       {/* ── Shared Protected Routes ── */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

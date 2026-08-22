@@ -8,7 +8,8 @@ from app.config import settings
 from app.routers import (
     auth_router, questions_router, exams_router,
     attempts_router, pwa_sync_router, viva_router,
-    sci_router, ledger_router, telemetry_router, ai_router
+    sci_router, ledger_router, telemetry_router, ai_router,
+    websocket_router
 )
 
 # Initialize database tables
@@ -44,6 +45,7 @@ app.include_router(sci_router)
 app.include_router(ledger_router)
 app.include_router(telemetry_router)
 app.include_router(ai_router)
+app.include_router(websocket_router)
 
 @app.get("/health", summary="Health & DB Connection Check", tags=["Health Check"])
 def health_check():

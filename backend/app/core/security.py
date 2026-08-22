@@ -2,7 +2,7 @@ import hmac
 import hashlib
 import json
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from app.config import settings
 
@@ -46,9 +46,9 @@ def _custom_b64decode(s: str) -> bytes:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": int(expire.timestamp()), "type": "access"})
 
     if jwt is not None:
@@ -66,9 +66,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": int(expire.timestamp()), "type": "refresh"})
 
     if jwt is not None:
@@ -103,7 +103,7 @@ def decode_token(token: str) -> Optional[dict]:
         payload_bytes = _custom_b64decode(payload_b64)
         payload = json.loads(payload_bytes.decode('utf-8'))
         exp = payload.get("exp")
-        if exp and datetime.utcnow().timestamp() > exp:
+        if exp and datetime.now(timezone.utc).timestamp() > exp:
             return None
         return payload
     except Exception:

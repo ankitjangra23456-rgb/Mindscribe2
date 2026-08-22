@@ -56,6 +56,9 @@ export default function FacultyDashboard() {
   const [aiLoading, setAiLoading]           = useState(false);
   const [generatedQs, setGeneratedQs]       = useState(null);
 
+  const [wsConnected, setWsConnected] = useState(false);
+  const [liveEvents,  setLiveEvents]  = useState([]);
+
   useEffect(() => {
     const path = location.pathname;
     if (path.includes('questions')) setActiveTab('questions');
@@ -65,6 +68,33 @@ export default function FacultyDashboard() {
     else if (path.includes('proctor')) setActiveTab('proctor-monitor');
     else setActiveTab('dashboard');
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (activeTab === 'proctor-monitor') {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname || 'localhost';
+      const wsUrl = `${protocol}//${host}:8000/ws/exam/1?client_type=faculty`;
+      let socket;
+      try {
+        socket = new WebSocket(wsUrl);
+        socket.onopen = () => setWsConnected(true);
+        socket.onmessage = (evt) => {
+          try {
+            const data = JSON.parse(evt.data);
+            setLiveEvents(prev => [data, ...prev.slice(0, 9)]);
+          } catch (e) {}
+        };
+        socket.onclose = () => setWsConnected(false);
+        socket.onerror = () => setWsConnected(false);
+      } catch (err) {
+        setWsConnected(false);
+      }
+
+      return () => {
+        if (socket) socket.close();
+      };
+    }
+  }, [activeTab]);
 
   const tabs = [
     { id: 'dashboard',        label: 'Dashboard',               icon: BarChart2 },
@@ -336,49 +366,77 @@ export default function FacultyDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Live Exam Session Monitor</h2>
-                <p className="text-xs text-slate-500">Real-time anti-cheat supervision for Data Structures Mid Term</p>
+                <h2 className="text-base font-bold text-slate-900">Live Exam Session Monitor (WebSockets)</h2>
+                <p className="text-xs text-slate-500">Real-time anti-cheat supervision &amp; live telemetry stream for Exam #1</p>
               </div>
-              <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold border border-emerald-200 animate-pulse">
-                ● 148 Students Live
+              <span className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                wsConnected ? 'bg-emerald-100 text-emerald-700 border-emerald-200 animate-pulse' : 'bg-amber-100 text-amber-700 border-amber-200'
+              }`}>
+                {wsConnected ? '● WebSocket Live Connected' : '○ WebSocket Reconnecting...'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { name: 'Ankit Kumar', id: 'STUD-1001', alerts: 0, status: 'Active (Tab Focused)', time: '38m remaining', clean: true },
-                { name: 'Priya Patel', id: 'STUD-1004', alerts: 2, status: 'Tab Switch Detected', time: '41m remaining', clean: false },
-                { name: 'Rahul Verma', id: 'STUD-1008', alerts: 0, status: 'Active (Tab Focused)', time: '36m remaining', clean: true },
-                { name: 'Neha Sharma', id: 'STUD-1012', alerts: 1, status: 'Copy Attempt Prevention', time: '39m remaining', clean: false },
-                { name: 'Aman Gupta',  id: 'STUD-1015', alerts: 0, status: 'Active (Tab Focused)', time: '35m remaining', clean: true },
-                { name: 'Sneha Roy',   id: 'STUD-1019', alerts: 0, status: 'Active (Tab Focused)', time: '40m remaining', clean: true },
-              ].map(s => (
-                <div key={s.id} className={`card p-4 shadow-card space-y-3 border ${s.clean ? 'border-slate-200' : 'border-rose-300 bg-rose-50/40'}`}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-bold text-slate-900 text-sm">{s.name}</h3>
-                      <p className="text-[11px] text-slate-400 font-mono">{s.id}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { name: 'Ankit Kumar', id: 'STUD-1001', alerts: 0, status: 'Active (Tab Focused)', time: '38m remaining', clean: true },
+                  { name: 'Priya Patel', id: 'STUD-1004', alerts: 2, status: 'Tab Switch Detected', time: '41m remaining', clean: false },
+                  { name: 'Rohan Verma', id: 'STUD-1008', alerts: 0, status: 'Active (Tab Focused)', time: '36m remaining', clean: true },
+                  { name: 'Neha Sharma', id: 'STUD-1012', alerts: 1, status: 'Copy Attempt Prevention', time: '39m remaining', clean: false },
+                ].map(s => (
+                  <div key={s.id} className={`card p-4 shadow-card space-y-3 border ${s.clean ? 'border-slate-200' : 'border-rose-300 bg-rose-50/40'}`}>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-sm">{s.name}</h3>
+                        <p className="text-[11px] text-slate-400 font-mono">{s.id}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                        s.alerts === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                      }`}>
+                        {s.alerts === 0 ? '✓ Clean' : `⚠ ${s.alerts} Alert(s)`}
+                      </span>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                      s.alerts === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                    }`}>
-                      {s.alerts === 0 ? '✓ Clean' : `⚠ ${s.alerts} Alert(s)`}
-                    </span>
+                    <div className="text-xs text-slate-600 space-y-1">
+                      <p>Status: <span className="font-semibold">{s.status}</span></p>
+                      <p className="text-slate-400">{s.time}</p>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold">
+                        View Stream
+                      </button>
+                      <button className="py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-semibold">
+                        Pause
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-600 space-y-1">
-                    <p>Status: <span className="font-semibold">{s.status}</span></p>
-                    <p className="text-slate-400">{s.time}</p>
+                ))}
+              </div>
+
+              {/* WebSocket Live Telemetry Feed */}
+              <div className="card p-4 shadow-card bg-slate-900 text-slate-100 space-y-3 flex flex-col h-[360px]">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">Live WS Telemetry Feed</h3>
                   </div>
-                  <div className="flex gap-2 pt-1">
-                    <button className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold">
-                      View Stream
-                    </button>
-                    <button className="py-1.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-semibold">
-                      Pause
-                    </button>
-                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">/ws/exam/1</span>
                 </div>
-              ))}
+                <div className="flex-1 overflow-y-auto font-mono text-[11px] space-y-2 pr-1">
+                  {liveEvents.length === 0 ? (
+                    <p className="text-slate-500 italic text-center pt-8">Listening for student heartbeat &amp; anomaly events via WebSocket...</p>
+                  ) : (
+                    liveEvents.map((evt, idx) => (
+                      <div key={idx} className="p-2 rounded bg-slate-800/80 border border-slate-700 text-slate-300 space-y-1">
+                        <div className="flex justify-between text-[10px] text-slate-400">
+                          <span>Event: {evt.type || 'telemetry'}</span>
+                          <span>Exam #{evt.exam_id}</span>
+                        </div>
+                        <p className="text-emerald-400 font-semibold">{JSON.stringify(evt)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

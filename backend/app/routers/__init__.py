@@ -8,9 +8,12 @@ from app.routers.sci import router as sci_router
 from app.routers.ledger import router as ledger_router
 from app.routers.telemetry import router as telemetry_router
 from app.routers.ai import router as ai_router
+from app.routers.websocket import router as websocket_router
 
 __all__ = [
     "auth_router", "questions_router", "exams_router",
     "attempts_router", "pwa_sync_router", "viva_router",
-    "sci_router", "ledger_router", "telemetry_router", "ai_router"
+    "sci_router", "ledger_router", "telemetry_router", "ai_router",
+    "websocket_router"
 ]
+

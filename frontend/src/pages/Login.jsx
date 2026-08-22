@@ -7,7 +7,6 @@ const DEMO_ACCOUNTS = [
   { label: 'Student',   email: 'ankit@example.com',      role: 'Student' },
   { label: 'Faculty',   email: 'priya.singh@cu.ac.in',   role: 'Faculty' },
   { label: 'Admin',     email: 'admin@cu.ac.in',          role: 'Admin' },
-  { label: 'Recruiter', email: 'rahul@techcorp.com',      role: 'Recruiter' },
 ];
 
 export default function Login() {
@@ -30,7 +29,6 @@ export default function Login() {
       const role  = user?.roles?.[0];
       if (role === 'Admin')     navigate('/admin');
       else if (role === 'Faculty')   navigate('/faculty');
-      else if (role === 'Recruiter') navigate('/recruiter');
       else                           navigate('/student');
     } catch (err) {
       setError(err.message || 'Login failed');

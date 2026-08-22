@@ -41,8 +41,7 @@ def seed_database():
         roles_mapping = {
             "Admin": ["exam:create", "exam:publish", "question:manage", "results:view_own", "results:view_all", "user:manage"],
             "Faculty": ["exam:create", "exam:publish", "question:manage", "results:view_own", "results:view_all"],
-            "Student": ["results:view_own"],
-            "Recruiter": ["results:view_all"]
+            "Student": ["results:view_own"]
         }
 
         role_map = {}
@@ -70,8 +69,6 @@ def seed_database():
             ("ankit@example.com", "Ankit Sharma", "Student", pwd_hash_alt),
             ("student@mindscribe.ai", "Rohan Verma", "Student", pwd_hash),
             ("student2@mindscribe.ai", "Sneha Patel", "Student", pwd_hash),
-            ("rahul@techcorp.com", "Rahul Verma", "Recruiter", pwd_hash_alt),
-            ("recruiter@mindscribe.ai", "Amit Kumar", "Recruiter", pwd_hash),
         ]
 
         user_map = {}
