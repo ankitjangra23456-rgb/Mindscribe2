@@ -175,6 +175,15 @@ export default function Login() {
               </div>
             </div>
 
+            {/* Prominent OTP Display Card */}
+            {mode === 'otp' && otpCode && (
+              <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-500/30 text-center space-y-1.5 shadow-sm">
+                <p className="text-[11px] font-extrabold uppercase tracking-wider text-blue-600">Your Verification OTP Code</p>
+                <div className="text-3xl font-extrabold font-mono tracking-widest text-blue-700">{otpCode}</div>
+                <p className="text-[11px] text-slate-500 font-medium">Auto-filled below — click "Verify OTP &amp; Sign In" to proceed</p>
+              </div>
+            )}
+
             {/* Info / Error */}
             {infoMsg && (
               <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
